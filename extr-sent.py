@@ -72,8 +72,12 @@ def myprocess(x):
     sentence not ending with .
     <!-- 
     """
+    #R.E. codes:
     #  \A  only start of the line
-    #   \Z  end of string
+    #  \Z  end of string
+
+    #todo: More from:
+    # https://github.com/larsmans/wiki-dump-tools/blob/master/textonly.py    
 
 
 
@@ -123,8 +127,10 @@ def fast_iter(context, func, *args, **kwargs):
  
 def process_element(elem, fout):
         global counter
-        normalized = unicodedata.normalize('NFKD', \
-                unicode(elem.text)).encode('ASCII','ignore').lower()
+        global parctr
+        global emptyline
+        #normalized = unicodedata.normalize('NFKD', \
+        #        unicode(elem.text)).encode('ASCII','ignore').lower()
 
         normalized = unicodedata.normalize('NFKD', unicode(elem.text))
 
@@ -134,8 +140,15 @@ def process_element(elem, fout):
             #print l
             q = myprocess(l)
             if len(q)>0:
-                print q
-                pass    
+                if emptyline:
+                    parctr +=1
+                    emptyline=False
+                    fout.write( ("\n%d: "%(parctr,) ).encode('UTF-8') )
+                fout.write( q.encode('UTF-8') )
+                pass 
+                #invar: emptyline==False
+            else:
+                emptyline=True   
 
 
         #print elem.text
@@ -148,11 +161,21 @@ def process_element(elem, fout):
 def main():
     #fin = bz2.BZ2File(sys.argv[1], 'r')
     fin = open('fawiki-20150228-pages-meta-current.xml','r')
-    fout = open('2013_wikipedia_en_pages_articles.txt', 'w')
-    context = etree.iterparse(fin)
-    global counter
-    counter = 0
-    fast_iter(context, process_element, fout)
+    fout = open('fa_sentences.txt', 'w')
+    #fout = sys.stdout
+    try:
+        context = etree.iterparse(fin)
+        global counter
+        counter = 0
+
+        global parctr
+        parctr = 0
+        global emptyline
+        emptyline = True
+        fast_iter(context, process_element, fout)
+    except Exception as e:
+        print e
+        fout.close()
  
 if __name__ == "__main__":
     main()
@@ -161,8 +184,9 @@ if __name__ == "__main__":
 """
 todo:  
 use yield
-connect lines again
-and split again using .
+connect the lines again and split again using "."
 empty lines are paragraph breaks?
 
 """
+#0:30
+#1:45
