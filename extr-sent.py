@@ -42,6 +42,7 @@ RE_CUT=[
     r"\A\#",
     r"==.*==",       
     r"===.*===",       
+    r"= .* =",       
 
     r"<p .*</p>", 
     r"<a .*</a>", 
@@ -322,12 +323,14 @@ class State1:
          self.parag_accum = ""
          self.newArticle = True
          self.unwantedTitle = False
+         self.articleCounter = 0
 
 
 def outp3(p):
     global gstate
     #    p=text_only(p)
-    p=myprocess(p,True)
+    #p=myprocess(p,True)
+    p=myprocess(p,False)
     p=text_only(p)
     #p = p.replace('.', '.\n')
     p = p.replace('. ', '.\n')
@@ -336,6 +339,35 @@ def outp3(p):
     #print "b"
     #p = p.replace(u'\xd8'.encode('UTF-8'), '?\n')
     p = p.replace(u'\xd8', u'\xd8\n')
+    p = p.replace(u'?', u'?\n')
+    
+    ##########################
+    # Feature: remove last line not ending with ".". Status: not complete.
+    ##########################
+    p0=p
+    #remove byond last line: All sentences must end with a "." or "?" :
+    lastline=p.rfind(".\n")
+    if lastline<0:
+        lastline=p.rfind(u'\xd8\n')
+    #todo: We may lose sentences that don't end up with ". "
+    #todo: Why the last sentece or one-wor paragraphs are not removed.
+    #fixme: see "salnameh" entry. Does not work well.
+    #works fine when lastline==-1:
+    #p = p[:(p.rfind("\n")+1)]
+    if lastline>=0:
+        p = p[:(lastline+1+1)]
+        if len(p)>0:
+            #print map(lambda x:(x),p[(len(p)-4):]) #debug
+            assert p[len(p)-1]=='\n'
+
+        if p != p0:
+            #p += "*...*"
+            #p += p0[(lastline+1+1):]
+            pass
+    else:
+        p=""#no line!
+
+
 
     if not gstate.unwantedTitle:
         sys.stdout.write(p.encode('UTF-8'))
@@ -352,7 +384,8 @@ def outp3(p):
         uwt=""
     gstate.unwantedTitle=unwantedTitle
 
-    sys.stdout.write("\n-------------------------%s---%s\n"%(uwt,gstate.nextTitle.encode('UTF-8'),))
+    if not unwantedTitle:
+        sys.stdout.write("\n-------------------------%s---%s\n"%(uwt,gstate.nextTitle.encode('UTF-8'),))
 
 def outp2(s, parcut=False, pagecut=False  ):
     global gstate
@@ -361,16 +394,19 @@ def outp2(s, parcut=False, pagecut=False  ):
     #for i in s:
     #    if i=='.':
     #s=map()
-    #if parcut:
-    #    outp3(gstate.parag_accum)
-    #    gstate.parag_accum=""
+    if parcut:
+        #outp3(gstate.parag_accum)
+        #gstate.parag_accum=""        
+        pass
     if pagecut:
+        #flush the next chunk into layer 3
         outp3(gstate.parag_accum)
         gstate.parag_accum=""
 
     #s = s.replace('..', '.')
     #s = s.replace('.', '.\n') #never here!
     #for versus map:
+    #gstate.parag_accum += parag_hdr
     gstate.parag_accum += s
 
 
@@ -399,6 +435,7 @@ def process_element(elem, fout):
 
         normalized = unicodedata.normalize('NFKD', unicode(elem.text))
 
+        gstate.articleCounter += 1
         #normalized=myprocess(normalized)
         st=normalized.split("\n")
         for l in st:
@@ -411,12 +448,14 @@ def process_element(elem, fout):
                 if gstate.emptyline:
                     gstate.parctr +=1
                     gstate.emptyline=False
-                    parag_hdr = ("\n%d(%d): \n"%(gstate.parctr,gstate.counter) )
+                    #parag_hdr = ("\n%d(%d): \n"%(gstate.parctr,gstate.counter) )
+                    parag_hdr = ("\n%d(%d): \n"%(gstate.parctr,gstate.articleCounter) )
                     #fout.write( parag_hdr.encode('UTF-8') )
                     
-                    #outp2(parag_hdr,parcut=True)
-                    outp2("",parcut=True)
+                    outp2(parag_hdr, parcut=True)
+                    #outp2("", parcut=True)
                     
+
                     #outp2("\n")
                 #fout.write( q.encode('UTF-8') )
                 outp2(q)
@@ -446,8 +485,10 @@ def main():
         fast_iter(context, process_element, fout)
         outp2("",parcut=True)
     except Exception as e:
+        print "ERROR"
         print e
         fout.close()
+        raise
  
 if __name__ == "__main__":
     main()
@@ -463,9 +504,8 @@ empty lines are paragraph breaks?
 #0:45
 #1:45
 #---- 3 hours
-#17:16 -- 22:23
-#---- +5 hours!
-
+#17:16 -- 23:41
+#---- +6.25 hours
 
 """
 
