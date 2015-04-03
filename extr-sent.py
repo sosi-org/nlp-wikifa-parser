@@ -8,14 +8,13 @@ import re
 RE_EXTRACT=[
     #ur".*\[\[.+\|(.*?)\]\]",  #no colon
     #ur".*\[\[(.*?)\]\]",  #no colon
-    ur".*\[\[([^\|^\:]*?)\]\]", #no "|" or ":"
-    ur".*\[\[.*\|([^\:]*?)\]\]", #with | without :
-    ur".*\[\[en:([^\|\:]*?)\]\]", #with | without :
+    ur"(.*)\[\[([^\|^\:]*?)\]\]", #no "|" or ":"
+    ur"(.*)\[\[.*\|([^\:]*?)\]\]", #with | without :
+    ur"(.*)\[\[en:([^\|\:]*?)\]\]", #with | without :
     r"<sub>(.*)</sub>", 
     r"<sup>(.*)</sup>",
     ur"{{ب\|(.*)}}",
     #r"{{[^\|]*?\|(.*)}}",
-
 ]
 
 
@@ -105,6 +104,7 @@ RE_CUT=[
     ur"\[\[:کاربر.*\]\]",
     ur"\[\[:بحث.*\]\]",
     ur"\[\[:پرونده.*\]\]",
+    ur"\{\{تاشو\|.*\{\{پایان تاشو\}\}"
 ]
 
 
@@ -168,9 +168,13 @@ sentence not ending with .
 # https://github.com/larsmans/wiki-dump-tools/blob/master/textonly.py    
 
 REPL_A=[
-("  "," ")
+    ("  "," ")
 ]
 
+def replall(x,REPL_A):
+    for f,t in REPL_A:
+        x = x.replace(f, t)
+    return x
 
 UNWANTED_TITLES=[
     ur"\Aبحث کاربر:",
@@ -188,12 +192,15 @@ UNWANTED_TITLES=[
 # http://baraujo.net/blog/?p=81
 
 #https://docs.python.org/2/library/re.html
-def myprocess(x, trace=False):
+def re_process(x, trace=False):
+    """
+    Processes text based on regular expressions.
+    deletes RE matches based on RE_CUT,
+    search/replace text based on REPL_A
+    extracts based on RE based on RE_EXTRACT.
+    trace: Shows some output in stderr.
+    """
     x0=x
-    def replall(x):
-        for f,t in REPL_A:
-            x = x.replace(f, t)
-        return x
 
     #x=x.replace("\n"," ")
     nx=x
@@ -214,7 +221,7 @@ def myprocess(x, trace=False):
                     pass
 
             nx=re.sub(r, "", nx)
-        nx=replall(nx)
+        nx=replall(nx, REPL_A)
 
         for r in RE_EXTRACT:
             #
@@ -222,11 +229,12 @@ def myprocess(x, trace=False):
             if not res is None:
                 nx00=nx
                 #nx=str(res.groups()[0]) #one group only
-                nx="".join(list(res.groups())) #keep all groups
-                nx=" "+nx+" "
+                nx1="".join(list(res.groups())) #keep all groups
+                nx1=" "+nx1+" "
+                nx = nx1 + nx[res.end():]   
                 if nx00 !=nx:
-                    #print ">>>>"+nx.encode('UTF-8')
                     #print "<<<<"+nx00.encode('UTF-8')
+                    #print ">>>>"+nx.encode('UTF-8')
                     pass
 
 
@@ -247,7 +255,8 @@ def myprocess(x, trace=False):
         #print x
         if trace:
             #sys.stderr.write(".")
-            sys.stderr.write((x0+"\n----\n"+x).encode('UTF-8'))
+            #STDERR OUTPUT
+            #sys.stderr.write((x0+"\n----\n"+x).encode('UTF-8'))
             pass
         pass
     return x
@@ -324,13 +333,14 @@ class State1:
          self.newArticle = True
          self.unwantedTitle = False
          self.articleCounter = 0
+         self.title_line = ""
 
 
 def outp3(p):
     global gstate
     #    p=text_only(p)
-    #p=myprocess(p,True)
-    p=myprocess(p,False)
+    #p=re_process(p,True)
+    p=re_process(p,False)
     p=text_only(p)
     #p = p.replace('.', '.\n')
     p = p.replace('. ', '.\n')
@@ -368,9 +378,32 @@ def outp3(p):
         p=""#no line!
 
 
+    global fout
 
     if not gstate.unwantedTitle:
-        sys.stdout.write(p.encode('UTF-8'))
+        #sys.stdout.write(p.encode('UTF-8'))
+        #print gstate.title_line
+        #print "AA"
+        #print gstate.title_line #.encode('UTF-8')
+        #print "BB"
+        
+        #fout.write( gstate.title_line.encode('UTF-8') )
+        #fout.write( gstate.title_line)
+
+        #print gstate.title_line
+        #fout.write(unicode(gstate.title_line).encode('UTF-8'))
+        #print((gstate.title_line))
+        t = gstate.title_line
+        q =  t.decode('UTF-8') + p
+
+        #fout.write(p.encode('UTF-8'))
+
+        #fbefortless : plotting T. now nrrf to fix domehting.
+        fout.write(q.encode('UTF-8'))
+
+        #sys.stderr.write(" ("+repr(len(p))+") ")
+        #if len(p)==0:
+
 
     unwantedTitle=False
     for r in UNWANTED_TITLES:
@@ -385,7 +418,12 @@ def outp3(p):
     gstate.unwantedTitle=unwantedTitle
 
     if not unwantedTitle:
-        sys.stdout.write("\n-------------------------%s---%s\n"%(uwt,gstate.nextTitle.encode('UTF-8'),))
+        #fout.write("\n-------------------------%s---%s\n"%(uwt,gstate.nextTitle.encode('UTF-8'),))
+        #gstate.title = (uwt,gstate.nextTitle.encode)
+        #gstate.title_line = "\n-------------------------%s---%s\n"%(uwt,gstate.nextTitle.encode('UTF-8'),)
+        #gstate.title_line = "-------------------------%s---%s\n"%(uwt,gstate.nextTitle.encode('UTF-8'),)
+        gstate.title_line = "%s%s\n"%(uwt,gstate.nextTitle.encode('UTF-8'),)
+        #fout.write(gstate.title_line)
 
 def outp2(s, parcut=False, pagecut=False  ):
     global gstate
@@ -410,25 +448,8 @@ def outp2(s, parcut=False, pagecut=False  ):
     gstate.parag_accum += s
 
 
-def fast_iter(context, func, *args, **kwargs):
-    # http://www.ibm.com/developerworks/xml/library/x-hiperfparse/
-    # Author: Liza Daly
-    # modified to call func() only in the event and elem needed
-    for event, elem in context:
-        #print elem
-        #print elem.tag
-        if event == 'end' and elem.tag == TAG_TEXT:
-            func(elem, *args, **kwargs)
-        if event == 'end' and elem.tag == TAG_TITLE:
-            ttl = unicodedata.normalize('NFKD', unicode(elem.text))
-            gstate.nextTitle = ttl 
-        elem.clear()
-        while elem.getprevious() is not None:
-            del elem.getparent()[0]
-    del context
 
-
-def process_element(elem, fout):
+def out1(elem, fout):
         global gstate
         #normalized = unicodedata.normalize('NFKD', \
         #        unicode(elem.text)).encode('ASCII','ignore').lower()
@@ -436,11 +457,11 @@ def process_element(elem, fout):
         normalized = unicodedata.normalize('NFKD', unicode(elem.text))
 
         gstate.articleCounter += 1
-        #normalized=myprocess(normalized)
+        #normalized=re_process(normalized)
         st=normalized.split("\n")
         for l in st:
             #print l
-            q = myprocess(l)
+            q = re_process(l)
             if len(q)>0:
                 if gstate.newArticle:
                     gstate.newArticle=False
@@ -449,7 +470,13 @@ def process_element(elem, fout):
                     gstate.parctr +=1
                     gstate.emptyline=False
                     #parag_hdr = ("\n%d(%d): \n"%(gstate.parctr,gstate.counter) )
+                    
+                    #parag_hdr = ("\n%d(%d): \n"%(gstate.parctr,gstate.articleCounter) )
+                    #ttt=gstate.title_line.encode('UTF-8')
+                    ttt=gstate.title_line
+                    #parag_hdr = ("\n%d(%d): %s\n"%(gstate.parctr,gstate.articleCounter, ttt) )
                     parag_hdr = ("\n%d(%d): \n"%(gstate.parctr,gstate.articleCounter) )
+                    
                     #fout.write( parag_hdr.encode('UTF-8') )
                     
                     outp2(parag_hdr, parcut=True)
@@ -469,27 +496,52 @@ def process_element(elem, fout):
         #print normalized.replace('\n', ' ')
         #print normalized
         #print >>fout, normalized.replace('\n', ' ')
-        if gstate.counter % 10000 == 0: print "Doc " + str(gstate.counter)
+        if gstate.counter % 100 == 0:
+            #print "\r",
+            print "Doc " + str(gstate.counter),  
+            sys.stdout.flush()
+
         gstate.counter += 1
         gstate.newArticle=True
  
+
+def iter_xml(context, func, *args, **kwargs):
+    # Based on http://www.ibm.com/developerworks/xml/library/x-hiperfparse/  by Liza Daly
+    for event, elem in context:
+        if event == 'end' and elem.tag == TAG_TEXT:
+            func(elem, *args, **kwargs)
+        if event == 'end' and elem.tag == TAG_TITLE:
+            ttl = unicodedata.normalize('NFKD', unicode(elem.text))
+            gstate.nextTitle = ttl 
+        elem.clear()
+        while elem.getprevious() is not None:
+            del elem.getparent()[0]
+    del context
+
+
 def main():
     #fin = bz2.BZ2File(sys.argv[1], 'r')
-    fin = open('fawiki-20150228-pages-meta-current.xml','r')
-    fout = open('fa_sentences.txt', 'w')
-    #fout = sys.stdout
+    #source_xml_file = 'fawiki-20150228-pages-meta-current.xml';
+    #source_xml_file = 'head1.xml';
+    source_xml_file = 'fashorter.xml';
+    target_file='fa_sentences.txt';
+    fin = open(source_xml_file,'r')
+    global fout
+    fout = open(target_file, 'w')  #rw+
+    fout.seek(0, 0)
     try:
         context = etree.iterparse(fin)
         global gstate
         gstate = State1()
-        fast_iter(context, process_element, fout)
+        process_text_element = out1
+        iter_xml(context, process_text_element, fout)
         outp2("",parcut=True)
     except Exception as e:
         print "ERROR"
         print e
         fout.close()
         raise
- 
+    
 if __name__ == "__main__":
     main()
 
@@ -506,6 +558,8 @@ empty lines are paragraph breaks?
 #---- 3 hours
 #17:16 -- 23:41
 #---- +6.25 hours
+
+#?1hr?
 
 """
 
@@ -632,5 +686,11 @@ english titles
 --زبان
 
 .[[پرونده:Brain Surface Gyri.SVG|thumb|بخش‌هایی از مغز که در پردازش زبان نقش دارند: کورتکس شنوایی اولیه انسان موجودی اجتماعی است و یکی
+
+"""
+
+
+"""
+head -c 10000000 fawiki-20150228-pages-meta-current.xml >head1.xml
 
 """
