@@ -15,12 +15,18 @@ RE_EXTRACT=[
     r"<sup>(.*)</sup>",
     ur"{{ب\|(.*)}}",
     #r"{{[^\|]*?\|(.*)}}",
+    ur"«(.*)»",
+    ur"\'\'\'\'\'(.*)\'\'\'\'\'",
+    ur"\'\'\'(.*)\'\'\'",
+    ur"\'\'(.*)\'\'",
+
 ]
+# '''«خانواده سلطنتی برادوی»'''
+#({{lang-en|The Royal Family of Broadway}}) 
 
 
 RE_CUT=[
 #    r"\[\[.*\]\]", #"[[:]]",
-    r"{{.*}}",
     r"\[http:.*\]",  # // --> forbidden
     r"\[https:.*\]",
     r"\[//.*?\]",
@@ -45,16 +51,21 @@ RE_CUT=[
 
     r"<p .*</p>", 
     r"<a .*</a>", 
-    r"{{.*}}",
+
+    ur"\(\{\{lang-en\|.*\}\}\)",
+    #\(\{\{lang-en\|.*\}\}\)
+
     #r"{{[^\|]*\|.*}}",
 
-    r"{{{.*}}}",       
     r"{{{{.*}}}}",       
+    r"{{{.*}}}",       
+    r"{{.*}}",
+    #r"{{.*}}",
     r"{.*}",       
 
-    r"\'\'\'.*\'\'\'",
-    r"\'\'.*\'\'", 
-    r"\'\'\'\'\'.*\'\'\'\'\'",
+    #r"\'\'\'.*\'\'\'",
+    #r"\'\'.*\'\'", 
+    #r"\'\'\'\'\'.*\'\'\'\'\'",
     r"\A\:",
     r"\A\:\:",  #emove whole line
 
@@ -104,7 +115,9 @@ RE_CUT=[
     ur"\[\[:کاربر.*\]\]",
     ur"\[\[:بحث.*\]\]",
     ur"\[\[:پرونده.*\]\]",
-    ur"\{\{تاشو\|.*\{\{پایان تاشو\}\}"
+    ur"\{\{تاشو\|.*\{\{پایان تاشو\}\}",
+
+    #{{Infobox  
 ]
 
 
@@ -205,6 +218,36 @@ def re_process(x, trace=False):
     #x=x.replace("\n"," ")
     nx=x
     while True:
+        """
+        while True:
+            anyy=False
+            for r in RE_CUT:
+                #
+                #res=re.match(r, nx)
+                #if not res is None:
+                #    nx=str(res.groups()[1])
+                #    print '*'
+                #re.sub(pattern, repl, string)
+
+                if trace:
+                    res=re.match(r, nx)
+                    if not res is None:
+                        #c=str(res.groups()[0])
+                        #sys.stderr.write((c+"\n").encode('UTF-8'))
+                        pass
+
+                nx=re.sub(r, "", nx)
+                if not r==nx:
+                    anyy=True
+                    break
+                #if not r==nx:
+                #    break
+            if not anyy:
+                break
+            pass
+        pass
+        """
+        
         for r in RE_CUT:
             #
             #res=re.match(r, nx)
@@ -221,6 +264,9 @@ def re_process(x, trace=False):
                     pass
 
             nx=re.sub(r, "", nx)
+            #if not r==nx:
+            #    break
+        
         nx=replall(nx, REPL_A)
 
         for r in RE_EXTRACT:
@@ -390,16 +436,41 @@ def outp3(p):
         #fout.write( gstate.title_line.encode('UTF-8') )
         #fout.write( gstate.title_line)
 
-        #print gstate.title_line
-        #fout.write(unicode(gstate.title_line).encode('UTF-8'))
-        #print((gstate.title_line))
-        t = gstate.title_line
-        q =  t.decode('UTF-8') + p
 
-        #fout.write(p.encode('UTF-8'))
 
-        #fbefortless : plotting T. now nrrf to fix domehting.
-        fout.write(q.encode('UTF-8'))
+
+        while True:
+            p00=p
+            p = p.replace('\n', u'(حط بعد)')#'\\n')
+            if p==p00:
+                break
+        
+        #print p
+
+            #else:
+            #    p00=p
+
+        if len(p)==0:
+            pass #p="(empty)"
+        else:
+            t = gstate.title_line
+            q =  t.decode('UTF-8') + p
+            fout.write(q.encode('UTF-8'))
+
+
+        #    #print gstate.title_line
+        #    #fout.write(unicode(gstate.title_line).encode('UTF-8'))
+        #    #print((gstate.title_line))
+        #    t = gstate.title_line
+        #    q =  t.decode('UTF-8') + p
+        # 
+        #
+        #    #fout.write(p.encode('UTF-8'))
+        #
+        #
+        #    #fbefortless : plotting T. now nrrf to fix domehting.
+        #    fout.write(q.encode('UTF-8'))
+
 
         #sys.stderr.write(" ("+repr(len(p))+") ")
         #if len(p)==0:
@@ -422,8 +493,10 @@ def outp3(p):
         #gstate.title = (uwt,gstate.nextTitle.encode)
         #gstate.title_line = "\n-------------------------%s---%s\n"%(uwt,gstate.nextTitle.encode('UTF-8'),)
         #gstate.title_line = "-------------------------%s---%s\n"%(uwt,gstate.nextTitle.encode('UTF-8'),)
-        gstate.title_line = "%s%s\n"%(uwt,gstate.nextTitle.encode('UTF-8'),)
+        gstate.title_line = "تیتر: %s%s\n"%(uwt,gstate.nextTitle.encode('UTF-8'),)
         #fout.write(gstate.title_line)
+    else:
+        gstate.title_line = "NONE\n" #This should not appear
 
 def outp2(s, parcut=False, pagecut=False  ):
     global gstate
@@ -512,7 +585,8 @@ def iter_xml(context, func, *args, **kwargs):
             func(elem, *args, **kwargs)
         if event == 'end' and elem.tag == TAG_TITLE:
             ttl = unicodedata.normalize('NFKD', unicode(elem.text))
-            gstate.nextTitle = ttl 
+            gstate.nextTitle = ttl
+            print ttl.encode('UTF-8')
         elem.clear()
         while elem.getprevious() is not None:
             del elem.getparent()[0]
