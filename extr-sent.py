@@ -5,21 +5,26 @@ import bz2
 import unicodedata
 import re
 
+
+#Always start with a "(.*)"
 RE_EXTRACT=[
     #ur".*\[\[.+\|(.*?)\]\]",  #no colon
     #ur".*\[\[(.*?)\]\]",  #no colon
     ur"(.*)\[\[([^\|^\:]*?)\]\]", #no "|" or ":"
     ur"(.*)\[\[.*\|([^\:]*?)\]\]", #with | without :
     ur"(.*)\[\[en:([^\|\:]*?)\]\]", #with | without :
-    r"<sub>(.*)</sub>", 
-    r"<sup>(.*)</sup>",
-    ur"{{ب\|(.*)}}",
+    r"(.*)<sub>(.*)</sub>", 
+    r"(.*)<sup>(.*)</sup>",
+    ur"(.*){{ب\|(.*)}}",
     #r"{{[^\|]*?\|(.*)}}",
-    ur"«(.*)»",
-    ur"\'\'\'\'\'(.*)\'\'\'\'\'",
-    ur"\'\'\'(.*)\'\'\'",
-    ur"\'\'(.*)\'\'",
-
+    ur"(.*)«(.*)»",
+    ur"(.*)\'\'\'\'\'(.*)\'\'\'\'\'",
+    ur"(.*)\'\'\'(.*)\'\'\'",
+    ur"(.*)\'\'(.*)\'\'",
+    ur"(.*)\'(.*)\'",
+    ur"(.*)\((.*)\)", #REMOVE ALL PARANTHESES
+    #ur"(.*)\"(.*)\"", #REMOVE QUOTATION MARKS #should not be too long
+    
 ]
 # '''«خانواده سلطنتی برادوی»'''
 #({{lang-en|The Royal Family of Broadway}}) 
@@ -116,6 +121,8 @@ RE_CUT=[
     ur"\[\[:بحث.*\]\]",
     ur"\[\[:پرونده.*\]\]",
     ur"\{\{تاشو\|.*\{\{پایان تاشو\}\}",
+    
+    ur"\"",
 
     #{{Infobox  
 ]
@@ -439,11 +446,19 @@ def outp3(p):
 
 
 
-        while True:
-            p00=p
-            p = p.replace('\n', u'(حط بعد)')#'\\n')
-            if p==p00:
-                break
+        #if False:
+        # while True:
+        #    p00=p
+        #    #SENTENCE_SEPARATOR = u'(حط بعد)'
+        #    #SENTENCE_SEPARATOR = '\n' #Don't use this (infinite loop).
+        #    #SENTENCE_SEPARATOR = '\\n'
+        #    #SENTENCE_SEPARATOR = '*\n'
+        #    p = p.replace('\n', SENTENCE_SEPARATOR)
+        #    #assert SENTENCE_SEPARATOR
+        #    if p==p00:
+        #        break
+        
+        #p = p.replace('\n', '\n')
         
         #print p
 
@@ -453,9 +468,13 @@ def outp3(p):
         if len(p)==0:
             pass #p="(empty)"
         else:
+            #print gstate.title_line
             t = gstate.title_line
             q =  t.decode('UTF-8') + p
             fout.write(q.encode('UTF-8'))
+
+
+
 
 
         #    #print gstate.title_line
@@ -548,7 +567,9 @@ def out1(elem, fout):
                     #ttt=gstate.title_line.encode('UTF-8')
                     ttt=gstate.title_line
                     #parag_hdr = ("\n%d(%d): %s\n"%(gstate.parctr,gstate.articleCounter, ttt) )
-                    parag_hdr = ("\n%d(%d): \n"%(gstate.parctr,gstate.articleCounter) )
+                    
+                    #parag_hdr = ("\n%d(%d): \n"%(gstate.parctr,gstate.articleCounter) )
+                    parag_hdr = ("\n%d(%d) "%(gstate.parctr,gstate.articleCounter) )
                     
                     #fout.write( parag_hdr.encode('UTF-8') )
                     
