@@ -387,54 +387,56 @@ class State1:
          self.unwantedTitle = False
          self.articleCounter = 0
          self.title_line = ""
+         self.totalctr = 0
+         self.producedctr = 0
 
 
-def outp3(p):
+def outp3(parag):
     global gstate
-    #    p=text_only(p)
-    #p=re_process(p,True)
-    p=re_process(p,False)
-    p=text_only(p)
-    #p = p.replace('.', '.\n')
-    p = p.replace('. ', '.\n')
+    #    parag=text_only(parag)
+    #parag=re_process(parag,True)
+    parag=re_process(parag,False)
+    parag=text_only(parag)
+    #parag = parag.replace('.', '.\n')
+    parag = parag.replace('. ', '.\n')
     #print "a"
     #print unicode(u'\xd8').encode('UTF-8')
     #print "b"
-    #p = p.replace(u'\xd8'.encode('UTF-8'), '?\n')
-    p = p.replace(u'\xd8', u'\xd8\n')
-    p = p.replace(u'?', u'?\n')
+    #parag = parag.replace(u'\xd8'.encode('UTF-8'), '?\n')
+    parag = parag.replace(u'\xd8', u'\xd8\n')
+    parag = parag.replace(u'?', u'?\n')
     
     ##########################
     # Feature: remove last line not ending with ".". Status: not complete.
     ##########################
-    p0=p
+    p0=parag
     #remove byond last line: All sentences must end with a "." or "?" :
-    lastline=p.rfind(".\n")
+    lastline=parag.rfind(".\n")
     if lastline<0:
-        lastline=p.rfind(u'\xd8\n')
+        lastline=parag.rfind(u'\xd8\n')
     #todo: We may lose sentences that don't end up with ". "
     #todo: Why the last sentece or one-wor paragraphs are not removed.
     #fixme: see "salnameh" entry. Does not work well.
     #works fine when lastline==-1:
-    #p = p[:(p.rfind("\n")+1)]
+    #parag = parag[:(parag.rfind("\n")+1)]
     if lastline>=0:
-        p = p[:(lastline+1+1)]
-        if len(p)>0:
-            #print map(lambda x:(x),p[(len(p)-4):]) #debug
-            assert p[len(p)-1]=='\n'
+        parag = parag[:(lastline+1+1)]
+        if len(parag)>0:
+            #print map(lambda x:(x),parag[(len(parag)-4):]) #debug
+            assert parag[len(parag)-1]=='\n'
 
-        if p != p0:
-            #p += "*...*"
-            #p += p0[(lastline+1+1):]
+        if parag != p0:
+            #parag += "*...*"
+            #parag += p0[(lastline+1+1):]
             pass
     else:
-        p=""#no line!
+        parag=""#no line!
 
 
     global fout
 
     if not gstate.unwantedTitle:
-        #sys.stdout.write(p.encode('UTF-8'))
+        #sys.stdout.write(parag.encode('UTF-8'))
         #print gstate.title_line
         #print "AA"
         #print gstate.title_line #.encode('UTF-8')
@@ -448,30 +450,38 @@ def outp3(p):
 
         #if False:
         # while True:
-        #    p00=p
+        #    p00=parag
         #    #SENTENCE_SEPARATOR = u'(حط بعد)'
         #    #SENTENCE_SEPARATOR = '\n' #Don't use this (infinite loop).
         #    #SENTENCE_SEPARATOR = '\\n'
         #    #SENTENCE_SEPARATOR = '*\n'
-        #    p = p.replace('\n', SENTENCE_SEPARATOR)
+        #    parag = parag.replace('\n', SENTENCE_SEPARATOR)
         #    #assert SENTENCE_SEPARATOR
-        #    if p==p00:
+        #    if parag==p00:
         #        break
         
-        #p = p.replace('\n', '\n')
+        #parag = parag.replace('\n', '\n')
         
-        #print p
+        #print parag
 
             #else:
-            #    p00=p
+            #    p00=parag
 
-        if len(p)==0:
-            pass #p="(empty)"
+        if len(parag)==0:
+            pass #parag="(empty)"
         else:
             #print gstate.title_line
             t = gstate.title_line
-            q =  t.decode('UTF-8') + p
+            
+            #q =  t.decode('UTF-8') + parag  #append title
+            q =   parag  #don't append the title
+            
             fout.write(q.encode('UTF-8'))
+            gstate.producedctr += len(q.splitlines())
+            print "+",len(q.splitlines()),gstate.producedctr, gstate.totalctr
+            #for i in range(len(q.splitlines())):
+            #    print q.splitlines()[i].encode('UTF-8'),','
+            #print
 
 
 
@@ -481,19 +491,20 @@ def outp3(p):
         #    #fout.write(unicode(gstate.title_line).encode('UTF-8'))
         #    #print((gstate.title_line))
         #    t = gstate.title_line
-        #    q =  t.decode('UTF-8') + p
+        #    q =  t.decode('UTF-8') + parag
         # 
         #
-        #    #fout.write(p.encode('UTF-8'))
+        #    #fout.write(parag.encode('UTF-8'))
         #
         #
         #    #fbefortless : plotting T. now nrrf to fix domehting.
         #    fout.write(q.encode('UTF-8'))
 
 
-        #sys.stderr.write(" ("+repr(len(p))+") ")
-        #if len(p)==0:
+        #sys.stderr.write(" ("+repr(len(parag))+") ")
+        #if len(parag)==0:
 
+    ## ttile --> .nextTitle (set in??) --> .title_line (set in outp3)
 
     unwantedTitle=False
     for r in UNWANTED_TITLES:
@@ -516,6 +527,9 @@ def outp3(p):
         #fout.write(gstate.title_line)
     else:
         gstate.title_line = "NONE\n" #This should not appear
+
+#outp3
+
 
 def outp2(s, parcut=False, pagecut=False  ):
     global gstate
@@ -540,9 +554,9 @@ def outp2(s, parcut=False, pagecut=False  ):
     gstate.parag_accum += s
 
 
-
 def out1(elem, fout):
         global gstate
+        gstate.totalctr +=1
         #normalized = unicodedata.normalize('NFKD', \
         #        unicode(elem.text)).encode('ASCII','ignore').lower()
 
@@ -607,18 +621,22 @@ def iter_xml(context, func, *args, **kwargs):
         if event == 'end' and elem.tag == TAG_TITLE:
             ttl = unicodedata.normalize('NFKD', unicode(elem.text))
             gstate.nextTitle = ttl
-            print ttl.encode('UTF-8')
+            #SHOW THE TITLE
+            #print ttl.encode('UTF-8')
         elem.clear()
         while elem.getprevious() is not None:
             del elem.getparent()[0]
     del context
 
 
+
 def main():
     #fin = bz2.BZ2File(sys.argv[1], 'r')
-    #source_xml_file = 'fawiki-20150228-pages-meta-current.xml';
     #source_xml_file = 'head1.xml';
-    source_xml_file = 'fashorter.xml';
+    if False:
+        source_xml_file = 'fawiki-20150228-pages-meta-current.xml'
+    else:
+        source_xml_file = 'fashorter.xml'
     target_file='fa_sentences.txt';
     fin = open(source_xml_file,'r')
     global fout
